@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OMEGA OFFSET PRINTERS – Paper Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f3f5f8;
+    padding:20px;
+}
+
+.container{
+    max-width:860px;
+    margin:auto;
+    background:#ffffff;
+    padding:25px;
+    border-radius:8px;
+    box-shadow:0 0 12px rgba(0,0,0,0.12);
+}
+
+/* HEADER */
+.header{
+    text-align:center;
+    margin-bottom:25px;
+}
+.header h1{
+    margin:0;
+    font-size:26px;
+    letter-spacing:1px;
+}
+.header p{
+    margin:4px 0 0;
+    font-size:14px;
+    color:#555;
+}
+
+.tool-title{
+    text-align:center;
+    margin:20px 0 25px;
+}
+.tool-title h2{
+    margin:0;
+    font-size:20px;
+}
+.tool-title span{
+    font-size:13px;
+    color:#666;
+}
+
+/* FORM */
+.row{
+    display:flex;
+    gap:15px;
+    margin-bottom:14px;
+    align-items:center;
+}
+label{
+    flex:1;
+    font-weight:bold;
+}
+input,select{
+    flex:2;
+    padding:9px;
+    font-size:15px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    font-size:16px;
+    background:#0d6efd;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+button:hover{
+    background:#084298;
+}
+
+/* MODAL */
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    z-index:1000;
+}
+.modal-content{
+    background:#ffffff;
+    max-width:600px;
+    margin:8% auto;
+    padding:22px;
+    border-radius:8px;
+    position:relative;
+}
+.close{
+    position:absolute;
+    right:12px;
+    top:10px;
+    font-size:22px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+/* RESULT */
+.result-header{
+    text-align:center;
+    margin-bottom:15px;
+}
+.result-header h3{
+    margin:0;
+    font-size:20px;
+}
+.result-header p{
+    margin:3px 0 0;
+    font-size:13px;
+    color:#555;
+}
+.result{
+    font-size:16px;
+    line-height:1.6;
+}
+.result strong{
+    font-size:18px;
+}
+
+@media print{
+    .container,button{display:none}
+    .modal{
+        display:block;
+        position:static;
+        background:none;
+    }
+    .modal-content{
+        box-shadow:none;
+        margin:0;
+        padding:0;
+    }
+    .close{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>OMEGA OFFSET PRINTERS</h1>
+        <p>Printing & Signage Solutions</p>
+    </div>
+
+    <div class="tool-title">
+        <h2>Paper Requirement Calculator</h2>
+        <span>(DC / DD System)</span>
+    </div>
+
+    <div class="row">
+        <label>Paper Calculation Type</label>
+        <select id="mode">
+            <option value="inside">Inside Pages</option>
+            <option value="cover">Cover Paper</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label>Total Pages (Inside only)</label>
+        <input type="number" id="pages" value="96">
+    </div>
+
+    <div class="row">
+        <label>Printing Type (Inside only)</label>
+        <select id="sides">
+            <option value="single">Single Side</option>
+            <option value="both">Both Side (Duplex)</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label>Base Paper</label>
+        <select id="base">
+            <option value="DC">Double Crown (DC)</option>
+            <option value="DD">Double Demy (DD)</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label>Finish Size</label>
+        <select id="finish">
+            <!-- DC -->
+            <option value="DC">DC</option>
+            <option value="DC_HALF">DC Half</option>
+            <option value="DC_1_4">DC 1/4</option>
+            <option value="DC_1_8">DC 1/8</option>
+            <option value="DC_1_16">DC 1/16</option>
+
+            <!-- DD -->
+            <option value="DD">DD</option>
+            <option value="DEMY">Demy</option>
+            <option value="DEMY_1_4">Demy 1/4</option>
+            <option value="DEMY_1_8">Demy 1/8</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label>Quantity (Copies)</label>
+        <input type="number" id="qty" value="1000">
+    </div>
+
+    <button onclick="calculate()">Calculate Paper Requirement</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <span class="close" onclick="modal.style.display='none'">&times;</span>
+
+        <div class="result-header">
+            <h3>OMEGA OFFSET PRINTERS</h3>
+            <p>Paper Requirement Calculation Sheet</p>
+        </div>
+
+        <div class="result" id="out"></div>
+    </div>
+</div>
+
+<script>
+// INSIDE – pages per SIDE
+const insidePagesPerSide = {
+    DC:1, DC_HALF:2, DC_1_4:4, DC_1_8:8, DC_1_16:16,
+    DD:1, DEMY:2, DEMY_1_4:8, DEMY_1_8:16
+};
+
+// COVER – covers per SHEET
+const coverPerSheet = {
+    DC:1,
+    DC_1_4:2,
+    DC_1_8:4,
+    DC_1_16:8,
+
+    DD:1,
+    DEMY:2,
+    DEMY_1_4:4,
+    DEMY_1_8:8
+};
+
+function calculate(){
+    const mode = modeSel.value;
+    const pages = +pagesInp.value;
+    const qty = +qtyInp.value;
+    const finish = finishSel.value;
+    const sides = sidesSel.value;
+
+    let sheets = 0;
+
+    if(mode === "inside"){
+        let perSheet = insidePagesPerSide[finish];
+        if(sides === "both") perSheet *= 2;
+        sheets = (pages / perSheet) * qty;
+    } else {
+        sheets = qty / coverPerSheet[finish];
+    }
+
+    const wastage = sheets * 0.05;
+    const total = Math.ceil(sheets + wastage);
+
+    out.innerHTML = `
+        Paper Category: ${mode === "cover" ? "Cover Paper" : "Inside Pages"}<br>
+        Finish Size: ${finish.replaceAll("_"," ")}<br>
+        Quantity: ${qty}<br><br>
+        Base Sheets: ${sheets.toFixed(2)}<br>
+        Wastage (5%): ${wastage.toFixed(2)}<br><br>
+        <strong>Total Paper Required: ${total} Sheets</strong>
+    `;
+    modal.style.display="block";
+}
+
+const modeSel=document.getElementById("mode");
+const pagesInp=document.getElementById("pages");
+const qtyInp=document.getElementById("qty");
+const finishSel=document.getElementById("finish");
+const sidesSel=document.getElementById("sides");
+const modal=document.getElementById("modal");
+const out=document.getElementById("out");
+</script>
+
+</body>
+</html>
